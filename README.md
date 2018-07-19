@@ -61,6 +61,16 @@ Also, you will need to add **lib_opencv** to the **target_link_libraries** near 
 include_directories(your-path-to/OpenCV-android-sdk/sdk/native/jni/include)
 add_library( lib_opencv SHARED IMPORTED )
 set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libopencv_java3.so)
+
+target_link_libraries( # Specifies the target library.
+                   native-lib
+
+                   # OpenCV lib
+                   lib_opencv
+
+                   # Links the target library to the log library
+                   # included in the NDK.
+                   ${log-lib} )
 ```
 
 Make sure to replace your-path-to with your actual path to OpenCV for Android.
