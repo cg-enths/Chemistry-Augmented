@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 include_directories(C:/Users/danim/Downloads/OpenCV-android-sdk/sdk/native/jni/include)
-add_library( lib_opencv SHARED IMPORTED )
+add_library(lib_opencv SHARED IMPORTED)
 set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libopencv_java3.so)
 
 add_library( # Sets the name of the library.
@@ -22,6 +22,16 @@ add_library( # Sets the name of the library.
 
              # Provides a relative path to your source file(s).
              src/main/cpp/native-lib.cpp )
+
+target_link_libraries( # Specifies the target library.
+                   native-lib
+
+                   # OpenCV lib
+                   lib_opencv
+
+                   # Links the target library to the log library
+                   # included in the NDK.
+                   ${log-lib} )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

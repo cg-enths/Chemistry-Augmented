@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -14,15 +15,34 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 
+import java.util.List;
+
+@SuppressWarnings("JniMissingFunction")
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
 {
-    private static final String TAG = "Chemistry_Augmentated";
+    /* Constants */
+    private static final String TAG = "CHEMISTRY_AUGMENTED";
 
-    private static final int REQUEST_CODE_ASK_PERMISSIONS = 0x80;
+    private static final int REQUEST_CODE_ASK_PERMISSIONS = 0;
 
+    private static final int CHANNEL_COUNT = 3;
+
+    /* GUI Elements */
     private CameraBridgeViewBase mOpenCvCameraView;
+
+    /* Data */
+    private Mat mRgba;
+    private Mat mHsv;
+    private Mat mIntermediateMat;
+    private Mat mHierarchy;
+
+    private List<MatOfPoint> mContours;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
     {
@@ -51,10 +71,12 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        requestPermission();
+
         mOpenCvCameraView = findViewById(R.id.camera_frame_layout);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
 
-        requestPermission();
+        mOpenCvCameraView.setCvCameraViewListener(this);
     }
 
     @Override
@@ -73,12 +95,12 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         super.onResume();
         if (!OpenCVLoader.initDebug())
         {
-            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            Log.i(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         }
         else
         {
-            Log.d(TAG, "OpenCV library found inside package. Using it!");
+            Log.i(TAG, "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
     }
@@ -94,7 +116,46 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
+    public void onCameraViewStarted(int width, int height)
+    {
+        // Create the Mats
+        mRgba            = new Mat(height, width, CvType.CV_8UC4);
+        mIntermediateMat = new Mat(height, width, CvType.CV_8UC4);
+        mHsv             = new Mat(height, width, CvType.CV_8UC4);
+
+        mHierarchy       = new Mat();
+    }
+
+    @Override
+    public void onCameraViewStopped()
+    {
+        // Force the matrix data deallocation
+        mRgba.release();
+        mIntermediateMat.release();
+        mHsv.release();
+
+        mHierarchy.release();
+    }
+
+    @Override
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
+    {
+        mRgba = inputFrame.rgba();
+
+        Imgproc.cvtColor(mRgba, mHsv, Imgproc.COLOR_RGB2HSV, CHANNEL_COUNT);
+
+        return mHsv;
+    }
+
+    private static native boolean nativeProjectPoints(long rgba
+            , long objp
+            , long mtx
+            , long dist
+            , long rvecs
+            , long tvecs);
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
     {
         switch (requestCode)
         {
@@ -112,8 +173,10 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
                             .show();
                 }
                 break;
+
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                break;
         }
     }
 
@@ -124,23 +187,5 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
             ActivityCompat
                     .requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_ASK_PERMISSIONS);
         }
-    }
-
-    @Override
-    public void onCameraViewStarted(int width, int height)
-    {
-
-    }
-
-    @Override
-    public void onCameraViewStopped()
-    {
-
-    }
-
-    @Override
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
-    {
-        return inputFrame.rgba();
     }
 }
