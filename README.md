@@ -11,7 +11,7 @@ Next step will be trying to make interactable.
 
 ## Setting up the NDK / OpenCV
 
-#### OpenCV   
+##### OpenCV   
 
 1. **Download** latest OpenCV sdk for Android from [OpenCV.org](https://opencv.org/releases.html) and decompress the zip file.
 
