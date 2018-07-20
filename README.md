@@ -1,7 +1,7 @@
 # Chemistry Augmented
 
 ## Purpose
-</p>
+
 The purpose of this project is to create an Android application that will detect some patterns drawn in some wood cards representing
 different chemical elements.
 
@@ -10,9 +10,9 @@ Once identified, the element will be 3D rendered on top of the card.
 Next step will be trying to make interactable.
 
 ## Setting up the NDK / OpenCV
-</p>
-##### OpenCV   
-</p>
+
+#### OpenCV   
+
 1. **Download** latest OpenCV sdk for Android from [OpenCV.org](https://opencv.org/releases.html) and decompress the zip file.
 
 2. **Import OpenCV to Android Studio**, From _File -> New -> Import Module_, choose _sdk/java_ folder in the unzipped opencv archive.
@@ -29,11 +29,11 @@ Next step will be trying to make interactable.
 Step (6) is since Android studio expects native libs in _app/src/main/jniLibs_ instead of older _libs_ folder
 
 ##### NDK
-</p>
+
 To configure the NDK refer to the [official guide](https://developer.android.com/studio/projects/add-native-code?hl=es-419).
 
 ##### How to use OpenCV in JNI
-</p>
+
 You will need to change your **app module's** build gradle to reflect the snippet below.
 
 ```
