@@ -77,6 +77,36 @@ Make sure to replace your-path-to with your actual path to OpenCV for Android.
 
 Finally, clean your project and refresh your linked C++ projects.
 
+##### OpenCV in Python 3
+
+To import OpenCV you must install `numpy` and, obviously, OpenCV for Python. To do so, just run these commands:
+
++ `pip install numpy`
+
++ `pip install opencv-python`
+
+## Calibrate the camera
+
+As every camera creates some distortion, a script has to be run to get the distortion coefficients.
+
+Ten or more photos of the chessboard have to be taken in order to calibrate the camera. Then, the script `calibrate.py` must be run, modifying the path to the pictures and the number of corners that form the chessboard.
+
+The results for my specific camera are:
+
+```
+Camera matrix
+
+[[ 517.65350405   0.           319.06418667]
+[  0.             518.2757208  238.78380146]
+[  0.             0.           1.          ]]
+```
+
+```
+Distortion coefficients
+
+[ 2.09547937e-01 -1.21926310e+00 -1.29976649e-03 -2.52504602e-03 2.26952234e+00 ]
+```
+
 ---
 
 ###### Links
