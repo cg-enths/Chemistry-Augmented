@@ -3,6 +3,7 @@ package com.danim.chemistryaugmented;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -17,11 +18,18 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.MatOfPoint3f;
+import org.opencv.core.Point3;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.List;
+
+import static org.opencv.imgproc.Imgproc.INTER_NEAREST;
 
 @SuppressWarnings("JniMissingFunction")
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
@@ -31,18 +39,25 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     private static final int REQUEST_CODE_ASK_PERMISSIONS = 0;
 
-    private static final int CHANNEL_COUNT = 3;
+    private static final int CHESSBOARD_COLUMNS = 6;
+    private static final int CHESSBOARD_ROWS    = 8;
 
     /* GUI Elements */
     private CameraBridgeViewBase mOpenCvCameraView;
 
     /* Data */
-    private Mat mRgba;
-    private Mat mHsv;
-    private Mat mIntermediateMat;
-    private Mat mHierarchy;
+    private static boolean mReady;
 
-    private List<MatOfPoint> mContours;
+    private static Size       mPatternSize = null;
+    private static MatOfPoint3f      mObjp = null;
+    private static MatOfPoint2f    mImgpts = null;
+    private static Mat              mTvecs = null;
+    private static Mat              mRvecs = null;
+
+    // Camera parameters (intrinsec parameters and distortion coefficients)
+    private static Mat      mCamMatrix = null;
+    private static MatOfDouble   mDist = null;
+
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
     {
@@ -55,6 +70,13 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
                     mOpenCvCameraView.enableView();
+
+                    System.loadLibrary("native-lib");
+
+                    new InitializationTask().execute();
+
+                    mReady = true;
+
                 } break;
 
                 default:
@@ -118,41 +140,123 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     @Override
     public void onCameraViewStarted(int width, int height)
     {
-        // Create the Mats
-        mRgba            = new Mat(height, width, CvType.CV_8UC4);
-        mIntermediateMat = new Mat(height, width, CvType.CV_8UC4);
-        mHsv             = new Mat(height, width, CvType.CV_8UC4);
-
-        mHierarchy       = new Mat();
     }
 
     @Override
     public void onCameraViewStopped()
     {
-        // Force the matrix data deallocation
-        mRgba.release();
-        mIntermediateMat.release();
-        mHsv.release();
-
-        mHierarchy.release();
+        mCamMatrix.release();
+        mDist.release();
+        mImgpts.release();
+        mObjp.release();
+        mRvecs.release();
+        mTvecs.release();
     }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
     {
-        mRgba = inputFrame.rgba();
+        Mat rgba = inputFrame.rgba();
+        Mat output = new Mat();
 
-        Imgproc.cvtColor(mRgba, mHsv, Imgproc.COLOR_RGB2HSV, CHANNEL_COUNT);
+        if (mReady)
+        {
+            if (nativeProjectPoints(
+                  rgba.getNativeObjAddr()
+                , mObjp.getNativeObjAddr()
+                , mCamMatrix.getNativeObjAddr()
+                , mDist.getNativeObjAddr()
+                , mRvecs.getNativeObjAddr()
+                , mRvecs.getNativeObjAddr()
+                , output.getNativeObjAddr()))
+            {
+                Log.i(TAG, "Corners detected");
+                return output;
+            }
+        }
 
-        return mHsv;
+        return rgba;
     }
 
-    private static native boolean nativeProjectPoints(long rgba
+    private static native boolean nativeProjectPoints(
+              long rgba
             , long objp
             , long mtx
             , long dist
             , long rvecs
-            , long tvecs);
+            , long tvecs
+            , long output);
+
+    private static class InitializationTask extends AsyncTask<Void, Void, Integer>
+    {
+        @Override
+        protected void onPreExecute()
+        {
+            Log.i(TAG, "Initializing");
+            mReady = false;
+        }
+
+        @Override
+        protected Integer doInBackground(Void... voids)
+        {
+            mPatternSize = new Size(CHESSBOARD_ROWS, CHESSBOARD_COLUMNS);
+
+            mObjp    = new MatOfPoint3f(_initPoint3Vector());
+            mImgpts  = new MatOfPoint2f();
+
+            mTvecs = new Mat();
+            mRvecs = new Mat();
+
+            mCamMatrix = new Mat ( 3, 3, CvType.CV_32F );
+
+            mCamMatrix.put(0, 0, 517.65350405f);
+            mCamMatrix.put(0, 1,          0.0f);
+            mCamMatrix.put(0, 2, 319.06418667f);
+            mCamMatrix.put(1, 0,          0.0f);
+            mCamMatrix.put(1, 1, 518.2757208f);
+            mCamMatrix.put(1, 2, 238.78380146f);
+            mCamMatrix.put(2, 0,          0.0f);
+            mCamMatrix.put(2, 1,          0.0f);
+            mCamMatrix.put(2, 2,          1.0f );
+
+            mDist = new MatOfDouble();
+
+            mDist.put(0 , 0,    0.209547937f);
+            mDist.put(0 , 1,    -1.21926310f);
+            mDist.put(0 , 2, -0.00129976649f);
+            mDist.put(0 , 3,  0.00252504602f);
+            mDist.put(0 , 4,     2.26952234f);
+
+            return 0;
+        }
+
+        @Override
+        protected void onPostExecute(Integer unused)
+        {
+            Log.i(TAG, "Initialization complete");
+            mReady = true;
+        }
+    }
+
+    /**
+     * Method that initilizes the pattern matrix
+     * @return pattern matrix initialized.
+     */
+    private static Point3[] _initPoint3Vector( )
+    {
+        Point3[] vaux = new Point3[(int) (mPatternSize.height * mPatternSize.width)];
+
+        int index = 0;
+        for (int i = 0; i < mPatternSize.height; i++)
+        {
+            for (int j = 0; j < mPatternSize.width; j++)
+            {
+                vaux[index++] = new Point3(j, i, 0);
+            }
+        }
+
+        return vaux;
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)

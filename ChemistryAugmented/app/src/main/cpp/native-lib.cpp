@@ -13,31 +13,40 @@
 using namespace std;
 using namespace cv;
 
+const int CHESSBOARD_COLUMNS = 6;
+const int CHESSBOARD_ROWS    = 8;
+
 extern "C"
 {
-    JNIEXPORT jboolean JNICALL Java_com_danim_chemistryaugmented_MainActivity_nativeProjectPoints(JNIEnv *env
+    JNIEXPORT jboolean JNICALL Java_com_danim_chemistryaugmented_MainActivity_nativeProjectPoints(
+          JNIEnv *env
         , jclass
         , jlong rgba
         , jlong objp
         , jlong mtx
         , jlong dist
         , jlong rvecs
-        , jlong tvecs)
+        , jlong tvecs
+        , jlong output)
     {
-        Mat mgray;
+        Mat gray;
+        Mat * rgbaResized = (Mat*) output;
         vector<Point2f> corners;
-        Size patternSize( 12, 9 );
+        Size patternSize(CHESSBOARD_ROWS, CHESSBOARD_COLUMNS);
 
-        cvtColor(*(Mat*)rgba, mgray, CV_RGBA2GRAY);
-        if (findChessboardCorners(mgray, patternSize, corners, CALIB_CB_FAST_CHECK))
+        resize(*(Mat*)rgba, *rgbaResized, Size(), .5f, .5f, INTER_NEAREST);
+
+        cvtColor(*rgbaResized, gray, CV_RGBA2GRAY);
+        if (findChessboardCorners(gray, patternSize, corners, CALIB_CB_FAST_CHECK))
         {
             /*cornerSubPix( *gray, corners, Size( 11,11 ), Size( -1,-1 )
                     , TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1) );*/
 
             solvePnPRansac(*(Mat*)objp, corners, *(Mat*)mtx, *(Mat*)dist, *(Mat*)rvecs, *(Mat*)tvecs);
 
-            //projectPoints( *(Mat*)coord, rvecs, tvecs, *(Mat*)mtx, *(Mat*)dist, *(Mat*)imgpts );
-            //drawChessboardCorners( *(Mat*)rgba, patternSize, Mat(corners), true );
+            //projectPoints(*(Mat*)coord, rvecs, tvecs, *(Mat*)mtx, *(Mat*)dist, *(Mat*)imgpts);
+
+            drawChessboardCorners(*rgbaResized, patternSize, Mat(corners), true);
 
             return static_cast<jboolean>(true);
         }
