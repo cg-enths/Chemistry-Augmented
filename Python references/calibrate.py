@@ -15,9 +15,9 @@ if __name__ == '__main__':
     args, img_mask = getopt.getopt(sys.argv[1:], '', ['save=', 'debug=', 'square_size='])
     args = dict(args)
 
-    try: 
+    try:
         img_mask = img_mask[0]
-    except: 
+    except:
         img_mask = 'chessboard/*.jpg'
 
     img_names = glob(img_mask)
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     square_size = float(args.get('--square_size', 1.0))
 
     # Indicamos cuantas esquinas interiores tiene el tablero
-    pattern_size = (12, 9)
+    pattern_size = (8, 6)
     # Crea una matriz de dos dimensiones (12*9 filas) y 3 columnas (tres coordenadas)
     pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
     # Esto esta explicado en el otro programa.
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         obj_points.append(pattern_points)
 
         print ('Ok')
-        
+
     # Devuelve todos los valores de la calibracion
     rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, (w, h), None, None)
 
