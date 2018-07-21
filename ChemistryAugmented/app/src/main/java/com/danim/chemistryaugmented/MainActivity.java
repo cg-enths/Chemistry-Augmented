@@ -157,7 +157,6 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
     {
         Mat rgba = inputFrame.rgba();
-        Mat output = new Mat();
 
         if (mReady)
         {
@@ -167,11 +166,9 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
                 , mCamMatrix.getNativeObjAddr()
                 , mDist.getNativeObjAddr()
                 , mRvecs.getNativeObjAddr()
-                , mRvecs.getNativeObjAddr()
-                , output.getNativeObjAddr()))
+                , mRvecs.getNativeObjAddr()))
             {
                 Log.i(TAG, "Corners detected");
-                return output;
             }
         }
 
@@ -184,8 +181,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
             , long mtx
             , long dist
             , long rvecs
-            , long tvecs
-            , long output);
+            , long tvecs);
 
     private static class InitializationTask extends AsyncTask<Void, Void, Integer>
     {
