@@ -19,17 +19,10 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfPoint3f;
 import org.opencv.core.Point3;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-
-import java.util.List;
-
-import static org.opencv.imgproc.Imgproc.INTER_NEAREST;
 
 @SuppressWarnings("JniMissingFunction")
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2
