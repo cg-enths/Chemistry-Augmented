@@ -58,7 +58,6 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     private static Mat      mCamMatrix = null;
     private static MatOfDouble   mDist = null;
 
-
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this)
     {
         @Override
@@ -67,22 +66,17 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
             switch (status)
             {
                 case LoaderCallbackInterface.SUCCESS:
-                {
                     Log.i(TAG, "OpenCV loaded successfully");
                     mOpenCvCameraView.enableView();
 
                     System.loadLibrary("native-lib");
 
                     new InitializationTask().execute();
-
-                    mReady = true;
-
-                } break;
+                    break;
 
                 default:
-                {
                     super.onManagerConnected(status);
-                } break;
+                    break;
             }
         }
     };
@@ -160,7 +154,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
         if (mReady)
         {
-            if (nativeProjectPoints(
+            if (nativeDetectCheckerboard(
                   rgba.getNativeObjAddr()
                 , mObjp.getNativeObjAddr()
                 , mCamMatrix.getNativeObjAddr()
@@ -175,14 +169,23 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         return rgba;
     }
 
-    private static native boolean nativeProjectPoints(
-              long rgba
-            , long objp
-            , long mtx
-            , long dist
-            , long rvecs
-            , long tvecs);
+    /**
+     * Native function which attempts to detect the checkerboard.
+     * @param rgba: input image.
+     * @param objp: pattern matrix.
+     * @param mtx: camera intrinsec parameters matrix.
+     * @param dist: distortion coefficient matrix.
+     * @param rvecs: rotation matrix.
+     * @param tvecs: translation matrix.
+     * @return true if detected.
+     */
+    private static native boolean nativeDetectCheckerboard(
+        long rgba, long objp, long mtx, long dist, long rvecs, long tvecs);
 
+    /**
+     * Background process which initializes all the structs and launches the checkerboard
+     * detection once finished.
+     */
     private static class InitializationTask extends AsyncTask<Void, Void, Integer>
     {
         @Override
