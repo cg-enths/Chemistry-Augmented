@@ -113,3 +113,4 @@ Distortion coefficients
 + [OpenCV in Android Studio](https://stackoverflow.com/questions/27406303/opencv-in-android-studio/27421494#27421494)
 + [OpenCV and JNI](https://stackoverflow.com/questions/49244078/cannot-find-opencv2-in-android-studio)
 + [NDK Setup](https://developer.android.com/studio/projects/add-native-code?hl=es-419)
++ [OpenCV shape detection](https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/)
