@@ -6,13 +6,15 @@
  */
 #include <jni.h>
 
+#define DEBUG
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#ifdef DEBUG
 #include <android/log.h>
-
-#define DEBUG
+#endif
 
 using namespace std;
 using namespace cv;
@@ -30,6 +32,10 @@ Mat rgbaResized;
 Mat grayResized;
 
 vector< Vec4i > lines;
+
+#ifdef DEBUG
+String logMessage;
+#endif
 
 extern "C"
 {
@@ -95,29 +101,31 @@ extern "C"
         resize( *( Mat * )rgba, rgbaResized, Size( ), ( 1 / RESIZING_RATIO ), ( 1 / RESIZING_RATIO ), INTER_NEAREST );
 
 #ifdef DEBUG
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Image resized by " + to_string(100 / RESIZING_RATIO) + "%" );
-#endif DEBUG
+        logMessage = ("Image resized by " + to_string(100 / RESIZING_RATIO) + "%\n");
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, logMessage.c_str() );
+#endif
 
         // Canny the image to detect better the edges.
         Canny( rgbaResized, cannied, 50, 200, 3 );
 
 #ifdef DEBUG
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Canny complete" );
-#endif DEBUG
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Canny complete\n" );
+#endif
 
         // Convert it to black and white.
         cvtColor( cannied, grayResized, CV_GRAY2BGR );
 
 #ifdef DEBUG
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Starting HoughLinesP" );
-#endif DEBUG
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Starting HoughLinesP\n" );
+#endif
 
         // Compute HoughLinesP to get a list of all the lines.
         HoughLinesP( cannied, lines, 1, CV_PI / 180, 50, 50, 10 );
 
 #ifdef DEBUG
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "HoughLinesP executed correctly. It found: " + to_string(lines.size()) + " lines" );
-#endif DEBUG
+        logMessage = "HoughLinesP executed correctly. It found: " + to_string(lines.size()) + " lines\n";
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, logMessage.c_str() );
+#endif
 
         // Rescale them as the image has been resized.
         for ( vector< Vec4i >::iterator it = lines.begin(); it != lines.end(); it++ )
@@ -126,8 +134,9 @@ extern "C"
         }
 
 #ifdef DEBUG
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Lines coordinated multiplied by: " + to_string(RESIZING_RATIO) );
-#endif DEBUG
+        logMessage = "Lines coordinates multiplied by: " + to_string(RESIZING_RATIO);
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, logMessage.c_str() );
+#endif
 
         for ( vector< Vec4i >::iterator it = lines.begin( ); it != lines.end( ); it++ )
         {
