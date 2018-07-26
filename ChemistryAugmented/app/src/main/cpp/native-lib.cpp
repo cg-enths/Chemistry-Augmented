@@ -10,13 +10,24 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <android/log.h>
+
 using namespace std;
 using namespace cv;
 
+/* Constants */
 const int CHESSBOARD_COLUMNS = 6;
 const int CHESSBOARD_ROWS    = 8;
 
-const float RESIZING_RATIO   = 4.0f;
+const float RESIZING_RATIO   = 2.0f;
+
+const char * TAG = "CHEMISTRY_AUGMENTED";
+
+/* Data */
+Mat rgbaResized;
+Mat grayResized;
+
+vector< Vec4i > lines;
 
 extern "C"
 {
@@ -30,7 +41,7 @@ extern "C"
         , jlong rvecs
         , jlong tvecs )
     {
-        Mat rgba_clone = ( *( Mat * )rgba ).clone();
+        Mat rgbaClone = ( *( Mat * )rgba ).clone();
         Mat gray;
         Mat grayResized;
         Mat rgbaResized;
@@ -40,11 +51,11 @@ extern "C"
 
         // Without rescaling, performance is very poor. So, the image is going to get
         // resized 75% -> 10FPS
-        resize( *( Mat * )rgba, rgbaResized, Size( ), (1 / RESIZING_RATIO), (1 / RESIZING_RATIO), INTER_NEAREST );
+        resize( *( Mat * )rgba, rgbaResized, Size( ), ( 1 / RESIZING_RATIO ), ( 1 / RESIZING_RATIO ), INTER_NEAREST );
 
         // Convert them to gray scale.
         cvtColor( rgbaResized, grayResized, CV_RGBA2GRAY );
-        cvtColor( rgba_clone, gray, CV_RGBA2GRAY );
+        cvtColor( rgbaClone, gray, CV_RGBA2GRAY );
 
         // Find the checkerboard using the low resolution image.
         if ( findChessboardCorners( grayResized, patternSize, corners, CALIB_CB_FAST_CHECK ) )
@@ -62,11 +73,49 @@ extern "C"
             // Calculate the rotation and translation of the card.
             solvePnPRansac( *( Mat * )objp, corners, *( Mat * )mtx, *( Mat * )dist, *( Mat * )rvecs, * ( Mat * )tvecs );
 
-            drawChessboardCorners(*( Mat * )rgba, patternSize, Mat( corners ), true );
+            drawChessboardCorners( *( Mat * )rgba, patternSize, Mat( corners ), true );
 
             return static_cast< jboolean >( true );
         }
 
         return static_cast< jboolean >( false );
+    }
+
+    JNIEXPORT jboolean JNICALL Java_com_danim_chemistryaugmented_MainActivity_nativeDetectContour(
+          JNIEnv * env
+        , jclass
+        , jlong rgba)
+    {
+        Mat cannied;
+        Mat thresh;
+
+        // Resize it to a smaller factor so that the shapes can be approximated better
+        resize( *( Mat * )rgba, rgbaResized, Size( ), ( 1 / RESIZING_RATIO ), ( 1 / RESIZING_RATIO ), INTER_NEAREST );
+
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Resizing complete" );
+
+        Canny( rgbaResized, cannied, 50, 200, 3 );
+
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Canny complete" );
+
+        cvtColor( cannied, grayResized, CV_GRAY2BGR );
+
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "BW complete" );
+
+        HoughLinesP( cannied, lines, 1, CV_PI / 180, 50, 50, 10 );
+
+        for ( vector< Vec4i >::iterator it = lines.begin(); it != lines.end(); it++ )
+        {
+            *it *= RESIZING_RATIO;
+        }
+
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Hough lines complete" );
+
+        for ( vector< Vec4i >::iterator it = lines.begin( ); it != lines.end( ); it++ )
+        {
+            line( *( Mat * )rgba, Point( ( *it )[ 0 ], ( *it )[ 1 ]), Point( ( *it )[ 2 ], ( *it )[ 3 ] ), Scalar( 0, 0, 255 ), 3, CV_AA );
+        }
+
+        return static_cast< jboolean >( true );
     }
 }

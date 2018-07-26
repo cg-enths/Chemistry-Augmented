@@ -175,6 +175,8 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     private static native boolean nativeDetectCheckerboard(
         long rgba, long objp, long mtx, long dist, long rvecs, long tvecs);
 
+    private static native boolean nativeDetectContour(long rgba);
+
     /**
      * Background process which initializes all the structs and launches the checkerboard
      * detection once finished.
