@@ -12,6 +12,8 @@
 
 #include <android/log.h>
 
+#define DEBUG
+
 using namespace std;
 using namespace cv;
 
@@ -89,27 +91,43 @@ extern "C"
         Mat cannied;
         Mat thresh;
 
-        // Resize it to a smaller factor so that the shapes can be approximated better
+        // Resize it to a smaller factor to improve performance.
         resize( *( Mat * )rgba, rgbaResized, Size( ), ( 1 / RESIZING_RATIO ), ( 1 / RESIZING_RATIO ), INTER_NEAREST );
 
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Resizing complete" );
+#ifdef DEBUG
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Image resized by " + to_string(100 / RESIZING_RATIO) + "%" );
+#endif DEBUG
 
+        // Canny the image to detect better the edges.
         Canny( rgbaResized, cannied, 50, 200, 3 );
 
+#ifdef DEBUG
         __android_log_write( ANDROID_LOG_DEBUG, TAG, "Canny complete" );
+#endif DEBUG
 
+        // Convert it to black and white.
         cvtColor( cannied, grayResized, CV_GRAY2BGR );
 
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "BW complete" );
+#ifdef DEBUG
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Starting HoughLinesP" );
+#endif DEBUG
 
+        // Compute HoughLinesP to get a list of all the lines.
         HoughLinesP( cannied, lines, 1, CV_PI / 180, 50, 50, 10 );
 
+#ifdef DEBUG
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "HoughLinesP executed correctly. It found: " + to_string(lines.size()) + " lines" );
+#endif DEBUG
+
+        // Rescale them as the image has been resized.
         for ( vector< Vec4i >::iterator it = lines.begin(); it != lines.end(); it++ )
         {
             *it *= RESIZING_RATIO;
         }
 
-        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Hough lines complete" );
+#ifdef DEBUG
+        __android_log_write( ANDROID_LOG_DEBUG, TAG, "Lines coordinated multiplied by: " + to_string(RESIZING_RATIO) );
+#endif DEBUG
 
         for ( vector< Vec4i >::iterator it = lines.begin( ); it != lines.end( ); it++ )
         {
