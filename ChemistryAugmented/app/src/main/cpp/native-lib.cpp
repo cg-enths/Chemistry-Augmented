@@ -20,12 +20,16 @@ using namespace std;
 using namespace cv;
 
 /* Constants */
-const int CHESSBOARD_COLUMNS = 6;
-const int CHESSBOARD_ROWS    = 8;
+const int CHESSBOARD_COLUMNS   = 6;
+const int CHESSBOARD_ROWS      = 8;
+
+const int THRESHOLD_MIN    = 50;
+const int THRESHOLD_MAX    = 200;
+const int MIN_LINE_LENGTH  = 50;
+const int MAX_LINE_GAP     = 20;
 
 const float RESIZING_RATIO   = 2.0f;
-
-const char * TAG = "CHEMISTRY_AUGMENTED";
+const float MY_RHO           = 1.0f;
 
 /* Data */
 Mat rgbaResized;
@@ -34,7 +38,9 @@ Mat grayResized;
 vector< Vec4i > lines;
 
 #ifdef DEBUG
-String logMessage;
+    const char * TAG = "CHEMISTRY_AUGMENTED";
+
+    String logMessage;
 #endif
 
 extern "C"
@@ -51,8 +57,6 @@ extern "C"
     {
         Mat rgbaClone = ( *( Mat * )rgba ).clone();
         Mat gray;
-        Mat grayResized;
-        Mat rgbaResized;
 
         vector< Point2f > corners;
         Size patternSize( CHESSBOARD_ROWS, CHESSBOARD_COLUMNS );
@@ -89,6 +93,12 @@ extern "C"
         return static_cast< jboolean >( false );
     }
 
+    /**
+     * Function which detects the contour of the card.
+     * @param env
+     * @param rgba
+     * @return
+     */
     JNIEXPORT jboolean JNICALL Java_com_danim_chemistryaugmented_MainActivity_nativeDetectContour(
           JNIEnv * env
         , jclass
@@ -106,7 +116,7 @@ extern "C"
 #endif
 
         // Canny the image to detect better the edges.
-        Canny( rgbaResized, cannied, 50, 200, 3 );
+        Canny( rgbaResized, cannied, THRESHOLD_MIN, THRESHOLD_MAX, 3 );
 
 #ifdef DEBUG
         __android_log_write( ANDROID_LOG_DEBUG, TAG, "Canny complete\n" );
@@ -120,7 +130,7 @@ extern "C"
 #endif
 
         // Compute HoughLinesP to get a list of all the lines.
-        HoughLinesP( cannied, lines, 1, CV_PI / 180, 50, 50, 10 );
+        HoughLinesP( cannied, lines, MY_RHO, CV_PI / 180, THRESHOLD_MIN, MIN_LINE_LENGTH, MAX_LINE_GAP );
 
 #ifdef DEBUG
         logMessage = "HoughLinesP executed correctly. It found: " + to_string(lines.size()) + " lines\n";
